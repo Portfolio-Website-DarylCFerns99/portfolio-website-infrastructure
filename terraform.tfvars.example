@@ -1,0 +1,140 @@
+# Sample terraform.tfvars file with dummy values
+# Replace with your actual values
+
+# Project and domain configuration
+project_id           = "my-awesome-project-123456"
+project_name         = "awesome-app"
+region               = "us-central1"
+domain_name          = "awesome-app.com"
+
+# API container image 
+api_container_image  = "gcr.io/my-awesome-project-123456/fastapi-app:latest"
+
+# SSL certificate paths - required for custom SSL
+ssl_private_key_path = "./private.key"
+ssl_certificate_path = "./certificate.crt"
+
+# VPC and networking configuration
+gke_subnet_cidr      = "10.0.0.0/20"
+gke_pods_cidr        = "10.16.0.0/14"
+gke_services_cidr    = "10.20.0.0/20"
+gke_master_cidr      = "172.16.0.0/28"
+
+# GKE cluster configuration
+gke_num_nodes        = 2
+gke_machine_type     = "e2-standard-2"
+
+# DNS Configuration - set to empty string if you're using an external DNS provider
+dns_zone_name        = "awesome-app-zone" 
+
+# SendGrid configuration is disabled - we use the dns_records instead
+sendgrid_config = {
+  enabled     = false  # Set to false as we're using dns_records instead
+  subdomain   = "u12345678.wl123"
+  bounce_id   = "12345678"
+  url_id      = "url1234"
+  email_id    = "em1234"
+}
+
+# DNS records - All records are defined here except the root domain
+# The root domain A record is created automatically pointing to the load balancer IP
+dns_records = {
+  # SendGrid email configuration
+  "em1234" = {
+    record_type = "CNAME"
+    ttl         = 3600
+    records     = ["u12345678.wl123.sendgrid.net."]
+    zone_name   = "awesome-app-zone"
+  },
+  
+  "s1._domainkey" = {
+    record_type = "CNAME"
+    ttl         = 3600
+    records     = ["s1.domainkey.u12345678.wl123.sendgrid.net."]
+    zone_name   = "awesome-app-zone"
+  },
+  
+  "s2._domainkey" = {
+    record_type = "CNAME"
+    ttl         = 3600
+    records     = ["s2.domainkey.u12345678.wl123.sendgrid.net."]
+    zone_name   = "awesome-app-zone"
+  },
+  
+  "_dmarc" = {
+    record_type = "TXT"
+    ttl         = 3600
+    records     = ["\"v=DMARC1; p=none;\""]
+    zone_name   = "awesome-app-zone"
+  },
+  
+  "url1234" = {
+    record_type = "CNAME"
+    ttl         = 3600
+    records     = ["sendgrid.net."]
+    zone_name   = "awesome-app-zone"
+  },
+  
+  "12345678" = {
+    record_type = "CNAME"
+    ttl         = 3600
+    records     = ["sendgrid.net."]
+    zone_name   = "awesome-app-zone"
+  },
+  
+  # Common DNS records
+  "www" = {
+    record_type = "CNAME"
+    ttl         = 3600
+    records     = ["awesome-app.com."]
+    zone_name   = "awesome-app-zone"
+  },
+  
+  "api" = {
+    record_type = "CNAME"
+    ttl         = 3600
+    records     = ["awesome-app.com."]
+    zone_name   = "awesome-app-zone"
+  },
+  
+  "dev" = {
+    record_type = "A"
+    ttl         = 300
+    records     = ["203.0.113.10"]
+    zone_name   = "awesome-app-zone"
+  },
+  
+  # Example MX records for email
+  "mail" = {
+    record_type = "MX"
+    ttl         = 3600
+    records     = [
+      "10 mailserver1.example.com.",
+      "20 mailserver2.example.com."
+    ]
+    zone_name   = "awesome-app-zone"
+  },
+  
+  # Verification record example
+  "verify" = {
+    record_type = "TXT"
+    ttl         = 3600
+    records     = ["\"verification=abc123def456\""]
+    zone_name   = "awesome-app-zone"
+  }
+}
+
+# Optional: Egress traffic restrictions for GKE nodes
+# Uncomment and fill the following if you want to restrict outbound traffic
+
+# allowed_egress_domains = [
+#   "api.github.com",
+#   "storage.googleapis.com",
+#   "gcr.io"
+# ]
+
+# allowed_egress_ip_ranges = [
+#   "140.82.112.0/20",   # GitHub API
+#   "173.194.0.0/16",    # Google services
+#   "172.217.0.0/16"     # More Google services
+# ]
