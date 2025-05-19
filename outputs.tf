@@ -1,4 +1,7 @@
-# Output variables from the Terraform deployment
+# output "neg_info" {
+#   value       = "NEG name: ${data.google_compute_network_endpoint_group.auto_neg.name}, Network: ${data.google_compute_network_endpoint_group.auto_neg.network}, Port: ${data.google_compute_network_endpoint_group.auto_neg.default_port}"
+#   description = "Information about the Network Endpoint Group"
+# } # Output variables from the Terraform deployment
 
 output "load_balancer_ip" {
   value       = google_compute_global_address.lb_ip.address
@@ -16,7 +19,7 @@ output "kubernetes_cluster_name" {
 }
 
 output "kubectl_command" {
-  value       = "gcloud container clusters get-credentials ${google_container_cluster.primary.name} --region ${var.region} --project ${var.project_id}"
+  value       = "gcloud container clusters get-credentials ${google_container_cluster.primary.name} --region ${var.gke_type == "region" ? var.region : var.gke_instance_node_zone} --project ${var.project_id}"
   description = "Command to get GKE cluster credentials"
 }
 

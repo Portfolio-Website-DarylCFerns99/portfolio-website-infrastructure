@@ -78,7 +78,7 @@ provider "kubernetes" {
 resource "google_storage_bucket" "portfolio_logs_bucket" {
   name          = "${var.project_name}-logs-bucket-${local.clean_timestamp}"
   location      = var.region
-  force_destroy = true # Allow deletion of bucket with objects
+  force_destroy = true
 
   lifecycle_rule {
     condition {
@@ -230,8 +230,9 @@ resource "google_compute_ssl_certificate" "default" {
 
 # Cloud Storage bucket for static assets
 resource "google_storage_bucket" "frontend_bucket" {
-  name     = "${var.project_name}-static-assets-${local.clean_timestamp}"
-  location = var.region
+  name          = "${var.project_name}-static-assets-${local.clean_timestamp}"
+  location      = var.region
+  force_destroy = true
 
   # Recommended settings for website hosting
   website {
@@ -292,7 +293,7 @@ resource "google_compute_backend_bucket" "cdn_backend" {
 # GKE cluster - private nodes with built-in logging
 resource "google_container_cluster" "primary" {
   name     = "${var.project_name}-gke-cluster"
-  location = var.region
+  location = var.gke_type == "region" ? var.region : var.gke_instance_node_zone
 
   # We create the smallest possible default node pool and immediately delete it
   remove_default_node_pool = true
@@ -350,7 +351,7 @@ resource "google_container_cluster" "primary" {
 # Node pool for the GKE cluster
 resource "google_container_node_pool" "primary_nodes" {
   name       = "${var.project_name}-node-pool"
-  location   = var.region
+  location   = var.gke_type == "region" ? var.region : var.gke_instance_node_zone
   cluster    = google_container_cluster.primary.name
   node_count = var.gke_num_nodes
 
@@ -421,6 +422,39 @@ resource "kubernetes_service_account" "app" {
   ]
 }
 
+# Create a Kubernetes service for the application that integrates with the NEG
+resource "kubernetes_service" "app" {
+  metadata {
+    name      = "${var.project_name}-api-service"
+    namespace = kubernetes_namespace.app.metadata[0].name
+    annotations = {
+      "cloud.google.com/neg"           = "{\"ingress\":true}"
+      "cloud.google.com/neg-status"    = "{\"network_endpoint_groups\": {\"8000\": \"${google_compute_network_endpoint_group.gke_neg.name}\"}}"
+      "cloud.google.com/app-protocols" = "{\"http\": \"HTTP\"}"
+    }
+  }
+
+  spec {
+    selector = {
+      app = "${var.project_name}-api"
+    }
+
+    port {
+      port        = 8000
+      target_port = 8000
+      protocol    = "TCP"
+      name        = "http"
+    }
+
+    type = "ClusterIP"
+  }
+
+  depends_on = [
+    kubernetes_namespace.app,
+    google_compute_network_endpoint_group.gke_neg
+  ]
+}
+
 # Health check for the backend service
 resource "google_compute_health_check" "gke_health_check" {
   name               = "${var.project_name}-gke-health-check"
@@ -448,28 +482,27 @@ resource "google_compute_backend_service" "gke_backend" {
   health_checks         = [google_compute_health_check.gke_health_check.id]
   load_balancing_scheme = "EXTERNAL"
 
-  # Instance group for the GKE nodes
+  # Use NEG instead of instance group
   backend {
-    group = google_compute_instance_group.gke_ig.id
+    group                 = google_compute_network_endpoint_group.gke_neg.id
+    balancing_mode        = "RATE"
+    max_rate_per_endpoint = 100
   }
 
   depends_on = [
     google_compute_health_check.gke_health_check,
-    google_compute_instance_group.gke_ig
+    google_compute_network_endpoint_group.gke_neg
   ]
 }
 
-# Create an instance group for the GKE nodes
-resource "google_compute_instance_group" "gke_ig" {
-  name        = "${var.project_name}-gke-ig"
-  description = "Instance group for GKE nodes"
-  zone        = var.gke_instance_node_zone
-  network     = google_compute_network.vpc_network.id
-
-  # This is automatically managed by GKE, we just need a reference for the backend service
-  lifecycle {
-    ignore_changes = [instances]
-  }
+# Create a Network Endpoint Group (NEG) for the GKE service
+resource "google_compute_network_endpoint_group" "gke_neg" {
+  name                  = "${var.project_name}-gke-neg"
+  network               = google_compute_network.vpc_network.id
+  subnetwork            = google_compute_subnetwork.gke_subnet.id
+  default_port          = 8000
+  zone                  = var.gke_instance_node_zone # Using first zone in the region
+  network_endpoint_type = "GCE_VM_IP_PORT"
 
   depends_on = [
     google_container_node_pool.primary_nodes,
@@ -705,6 +738,18 @@ resource "google_storage_bucket_iam_binding" "storage_sink_writer" {
     google_storage_bucket.portfolio_logs_bucket,
     google_logging_project_sink.lb_logs,
     google_logging_project_sink.backend_service_logs
+  ]
+}
+
+# Add an explicit IAM binding for the load balancer log sink
+resource "google_storage_bucket_iam_member" "lb_logs_writer" {
+  bucket = google_storage_bucket.portfolio_logs_bucket.name
+  role   = "roles/storage.objectCreator"
+  member = google_logging_project_sink.lb_logs.writer_identity
+
+  depends_on = [
+    google_storage_bucket.portfolio_logs_bucket,
+    google_logging_project_sink.lb_logs
   ]
 }
 

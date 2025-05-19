@@ -23,6 +23,12 @@ variable "domain_name" {
 }
 
 # VPC and Subnet CIDRs
+variable "gke_type" {
+  description = "Type of GKe cluster to be crceated (Regional or Zonal)"
+  type        = string
+  default     = "region"
+}
+
 variable "gke_subnet_cidr" {
   description = "CIDR for the GKE subnet"
   type        = string
