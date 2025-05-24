@@ -1,110 +1,106 @@
-# Sample terraform.tfvars file with dummy values
+# Sample terraform.tfvars file with example values
 # Replace with your actual values
 
 # Project and domain configuration
-project_id           = "my-awesome-project-123456"
-project_name         = "awesome-app"
-region               = "us-central1"
-domain_name          = "awesome-app.com"
+project_id   = "my-portfolio-project-123456"
+project_name = "portfolio"
+region       = "us-east1"
+domain_name  = "your-domain.com"
 
 # API container image 
-api_container_image  = "gcr.io/my-awesome-project-123456/fastapi-app:latest"
+api_container_image = "gcr.io/my-portfolio-project-123456/fastapi-app:latest"
 
 # SSL certificate paths - required for custom SSL
 ssl_private_key_path = "./private.key"
 ssl_certificate_path = "./certificate.crt"
 
-# VPC and networking configuration
-gke_subnet_cidr      = "10.0.0.0/20"
-gke_pods_cidr        = "10.16.0.0/14"
-gke_services_cidr    = "10.20.0.0/20"
-gke_master_cidr      = "172.16.0.0/28"
+# VPC and networking configuration (defaults work for most cases)
+# Set gke_type to either "region" or "zone"
+gke_type          = "zone"
+gke_subnet_cidr   = "10.0.0.0/20"
+gke_pods_cidr     = "10.16.0.0/14"
+gke_services_cidr = "10.20.0.0/20"
+gke_master_cidr   = "172.16.0.0/28"
 
 # GKE cluster configuration
-gke_num_nodes        = 2
-gke_machine_type     = "e2-standard-2"
+gke_num_nodes            = 2
+gke_machine_disk_size_gb = 15
+gke_instance_node_zone   = "us-east1-b"  # Required when gke_type = "zone"
+gke_machine_type         = "e2-standard-2"
 
 # DNS Configuration - set to empty string if you're using an external DNS provider
-dns_zone_name        = "awesome-app-zone" 
-
-# SendGrid configuration is disabled - we use the dns_records instead
-sendgrid_config = {
-  enabled     = false  # Set to false as we're using dns_records instead
-  subdomain   = "u12345678.wl123"
-  bounce_id   = "12345678"
-  url_id      = "url1234"
-  email_id    = "em1234"
-}
+dns_zone_name = "your-domain-zone"
 
 # DNS records - All records are defined here except the root domain
 # The root domain A record is created automatically pointing to the load balancer IP
 dns_records = {
-  # SendGrid email configuration
+  # SendGrid email configuration (replace with your actual SendGrid values)
   "em1234" = {
     record_type = "CNAME"
     ttl         = 3600
     records     = ["u12345678.wl123.sendgrid.net."]
-    zone_name   = "awesome-app-zone"
+    zone_name   = "your-domain-zone"
   },
-  
+
   "s1._domainkey" = {
     record_type = "CNAME"
     ttl         = 3600
     records     = ["s1.domainkey.u12345678.wl123.sendgrid.net."]
-    zone_name   = "awesome-app-zone"
+    zone_name   = "your-domain-zone"
   },
-  
+
   "s2._domainkey" = {
     record_type = "CNAME"
     ttl         = 3600
     records     = ["s2.domainkey.u12345678.wl123.sendgrid.net."]
-    zone_name   = "awesome-app-zone"
+    zone_name   = "your-domain-zone"
   },
-  
+
   "_dmarc" = {
     record_type = "TXT"
     ttl         = 3600
     records     = ["\"v=DMARC1; p=none;\""]
-    zone_name   = "awesome-app-zone"
+    zone_name   = "your-domain-zone"
   },
-  
+
   "url1234" = {
     record_type = "CNAME"
     ttl         = 3600
     records     = ["sendgrid.net."]
-    zone_name   = "awesome-app-zone"
+    zone_name   = "your-domain-zone"
   },
-  
+
   "12345678" = {
     record_type = "CNAME"
     ttl         = 3600
     records     = ["sendgrid.net."]
-    zone_name   = "awesome-app-zone"
+    zone_name   = "your-domain-zone"
   },
-  
+
   # Common DNS records
   "www" = {
     record_type = "CNAME"
     ttl         = 3600
-    records     = ["awesome-app.com."]
-    zone_name   = "awesome-app-zone"
+    records     = ["your-domain.com."]
+    zone_name   = "your-domain-zone"
   },
-  
+
   "api" = {
     record_type = "CNAME"
     ttl         = 3600
-    records     = ["awesome-app.com."]
-    zone_name   = "awesome-app-zone"
+    records     = ["your-domain.com."]
+    zone_name   = "your-domain-zone"
   },
-  
+
+  # Development/staging subdomain example
   "dev" = {
     record_type = "A"
     ttl         = 300
     records     = ["203.0.113.10"]
-    zone_name   = "awesome-app-zone"
+    zone_name   = "your-domain-zone"
   },
-  
-  # Example MX records for email
+
+  # Example MX records for email (if not using SendGrid for receiving email)
   "mail" = {
     record_type = "MX"
     ttl         = 3600
@@ -112,29 +108,31 @@ dns_records = {
       "10 mailserver1.example.com.",
       "20 mailserver2.example.com."
     ]
-    zone_name   = "awesome-app-zone"
+    zone_name   = "your-domain-zone"
   },
-  
-  # Verification record example
+
+  # Domain verification record example
   "verify" = {
     record_type = "TXT"
     ttl         = 3600
     records     = ["\"verification=abc123def456\""]
-    zone_name   = "awesome-app-zone"
+    zone_name   = "your-domain-zone"
   }
 }
 
 # Optional: Egress traffic restrictions for GKE nodes
-# Uncomment and fill the following if you want to restrict outbound traffic
+# Uncomment and fill the following if you want to restrict outbound traffic from your GKE cluster
 
 # allowed_egress_domains = [
 #   "api.github.com",
 #   "storage.googleapis.com",
-#   "gcr.io"
+#   "gcr.io",
+#   "registry-1.docker.io"
 # ]
 
 # allowed_egress_ip_ranges = [
 #   "140.82.112.0/20",   # GitHub API
 #   "173.194.0.0/16",    # Google services
-#   "172.217.0.0/16"     # More Google services
+#   "172.217.0.0/16",    # More Google services
+#   "54.230.0.0/16"      # Docker Hub
 # ]

@@ -1,253 +1,452 @@
-# Vite + ReactJS Frontend with FastAPI Backend on GCP
+# Portfolio Website Infrastructure
 
-This repository contains Terraform configuration for deploying a complete infrastructure on Google Cloud Platform for a modern web application architecture.
+[![Terraform](https://img.shields.io/badge/Terraform-1.0+-623CE4?style=for-the-badge&logo=terraform&logoColor=white)](https://www.terraform.io/)
+[![Google Cloud](https://img.shields.io/badge/Google_Cloud-4285F4?style=for-the-badge&logo=google-cloud&logoColor=white)](https://cloud.google.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
+[![Kubernetes](https://img.shields.io/badge/kubernetes-326ce5.svg?style=for-the-badge&logo=kubernetes&logoColor=white)](https://kubernetes.io/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)](https://reactjs.org/)
+[![Maintained](https://img.shields.io/badge/Maintained%3F-yes-green.svg?style=for-the-badge)](https://github.com/Portfolio-Website-DarylCFerns99/portfolio-website-infrastructure/graphs/commit-activity)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=for-the-badge)](http://makeapullrequest.com)
 
-## Architecture
+A comprehensive Terraform configuration for deploying a modern, production-ready portfolio website on Google Cloud Platform. This infrastructure supports a full-stack web application with a React/Vite frontend served via Cloud CDN and a FastAPI backend running on Google Kubernetes Engine.
 
-![Architecture Diagram]()
+## 🏗️ Architecture Overview
 
-The infrastructure includes:
+![Infrastructure Architecture](Infrastructure.png)
 
-1. **Frontend**: Vite + React served from Google Cloud Storage via Cloud CDN
-2. **Backend**: FastAPI on Google Kubernetes Engine (GKE)
-3. **Networking**: Cloud Load Balancer with path-based routing to serve both components on a single domain
+This infrastructure provides:
 
-## Features
+- **Frontend**: Static React/Vite application served from Google Cloud Storage with Cloud CDN
+- **Backend**: FastAPI application running on Google Kubernetes Engine (GKE)
+- **Load Balancer**: Path-based routing serving both components on a single domain
+- **Security**: HTTPS with SSL certificates, private GKE nodes, and configurable firewall rules
+- **Monitoring**: Comprehensive logging and monitoring across all components
+- **DNS Management**: Automated DNS record management with Cloud DNS
+- **CI/CD Ready**: GitHub Actions support for automated deployments
 
-- **Self-contained Infrastructure**: All required GCP APIs are enabled automatically
-- **Comprehensive Logging**: Logs from all components are streamed to Google Cloud Logging
-- **Simplified DNS Management**: 
-  - Single source of truth for all DNS records in a map structure
-  - Automatic root domain A record pointing to load balancer IP
-  - Support for SendGrid email configuration out of the box
-- **Enhanced Security**:
-  - Private GKE nodes
-  - HTTPS with SSL certificate
-  - Restricted firewall rules
-  - Optional domain-based egress control
-- **Production-Ready**: Load balancing, CDN, auto-scaling, and more
-- **Helper Scripts**: Streamlined deployment and cleanup scripts for easier testing
+## ✨ Key Features
 
-## Prerequisites
+### Infrastructure as Code
+- Complete infrastructure definition using Terraform
+- Automated GCP API enablement
+- Remote state management with Cloud Storage backend
+- Environment-specific configurations
 
-- Google Cloud Platform account with billing enabled
-- Terraform (v1.0.0+)
-- SSL certificate and private key for your domain
-- Docker image for your FastAPI backend (or you'll need to build and push one)
+### Security & Compliance
+- Private GKE cluster with restricted node access
+- SSL/TLS termination with custom certificates
+- Network-level security with VPC and firewall rules
+- Optional egress traffic restrictions
+- Workload Identity for secure pod-to-GCP API access
+- Shielded GKE nodes for enhanced security
 
-## Setup Instructions
+### Production-Ready Features
+- Auto-scaling GKE node pools
+- Cloud CDN for global content delivery
+- Comprehensive logging pipeline to Cloud Logging and BigQuery
+- Health checks and load balancing
+- VPC Flow Logs for network monitoring
+- Automatic HTTP to HTTPS redirects
 
-### 1. Clone this repository
+### Developer Experience
+- Helper scripts for streamlined deployment and cleanup
+- Automated SSL certificate generation for testing
+- Clear output information for post-deployment configuration
+- CI/CD integration with GitHub Actions
+- Detailed documentation and troubleshooting guides
+
+## 📋 Prerequisites
+
+Before you begin, ensure you have:
+
+- **Google Cloud Platform account** with billing enabled
+- **Terraform** (v1.0.0 or later) installed
+- **Google Cloud SDK** (`gcloud`) installed and configured
+- **SSL certificate and private key** for your domain
+- **Docker image** for your FastAPI backend pushed to a container registry
+
+## 🚀 Quick Start
+
+### 1. Clone and Setup
 
 ```bash
-git clone https://github.com/your-username/infrastructure.git
-cd infrastructure
+git clone <your-repository-url>
+cd portfolio-website-infrastructure
 ```
 
-### 2. Configure Terraform variables
+### 2. Configure Variables
 
 ```bash
 cp terraform.tfvars.example terraform.tfvars
 ```
 
-Edit `terraform.tfvars` to set your:
-- GCP project ID
-- Project name
-- Domain name
-- Path to SSL certificate files
-- Container image for the backend
-- DNS records (all records except the root domain are defined here)
+Edit `terraform.tfvars` with your specific values:
 
-### 3. Generate SSL certificates (for testing only)
+```hcl
+# Essential Configuration
+project_id   = "my-portfolio-project-123456"
+project_name = "portfolio"
+region       = "us-east1"
+domain_name  = "your-domain.com"
+api_container_image = "gcr.io/my-portfolio-project-123456/fastapi-app:latest"
 
-For testing, you can generate self-signed certificates:
+# SSL Certificate Paths
+ssl_private_key_path = "./private.key"
+ssl_certificate_path = "./certificate.crt"
 
-```bash
-chmod +x generate-cert.sh
-./generate-cert.sh yourdomain.com
+# GKE Configuration
+gke_type               = "zone"  # or "region"
+gke_instance_node_zone = "us-east1-b"  # Required when gke_type = "zone"
+gke_machine_disk_size_gb = 15
+
+# DNS Configuration (set to "" if using external DNS)
+dns_zone_name = "your-domain-zone"
 ```
 
-For production, use a trusted certificate authority.
-
-### 4. Deploy with the Helper Script (Recommended)
-
-The easiest way to deploy the infrastructure is using the provided helper script:
+### 3. Deploy Using Helper Script (Recommended)
 
 ```bash
 chmod +x deploy.sh
 ./deploy.sh
 ```
 
-The script will:
-- Guide you through setting up required variables if needed
-- Generate self-signed SSL certificates if they don't exist
+The deployment script will:
+- Guide you through configuration if `terraform.tfvars` doesn't exist
+- Generate self-signed SSL certificates for testing (if needed)
 - Create a Terraform state bucket automatically
-- Initialize Terraform with the remote backend
-- Plan and apply the infrastructure changes
-- Display useful outputs after deployment
+- Initialize Terraform with remote backend
+- Plan and apply the infrastructure
+- Display deployment outputs and next steps
 
-### 5. Manual Deployment (Alternative)
+### 4. Alternative: Manual Deployment
 
-If you prefer to deploy manually, you can follow these steps:
-
-#### 5.1 Initialize Terraform
-
-Create a GCS bucket for Terraform state:
+If you prefer manual control:
 
 ```bash
-PROJECT_ID="your-gcp-project-id"
-gsutil mb -l us-central1 gs://${PROJECT_ID}-tf-state
+# Create Terraform state bucket
+PROJECT_ID="my-portfolio-project-123456"
+gsutil mb -l us-east1 gs://${PROJECT_ID}-tf-state
 gsutil versioning set on gs://${PROJECT_ID}-tf-state
-```
 
-Initialize Terraform with remote state:
-
-```bash
+# Initialize Terraform
 terraform init \
   -backend-config="bucket=${PROJECT_ID}-tf-state" \
   -backend-config="prefix=terraform/state"
-```
 
-#### 5.2 Plan and apply
-
-```bash
+# Plan and apply
 terraform plan -out=tfplan
 terraform apply tfplan
 ```
 
-## DNS Configuration
+## 🌐 DNS Configuration
 
-The infrastructure uses a simplified approach to DNS management:
+This infrastructure supports flexible DNS management:
 
-1. **Root Domain A Record**: Automatically created pointing to the load balancer IP address
-2. **All Other DNS Records**: Defined in the `dns_records` map in terraform.tfvars
+### Option 1: Google Cloud DNS (Automated)
+If you set `dns_zone_name` in your configuration:
+- Root domain A record is created automatically
+- All additional DNS records are managed via the `dns_records` map
+- Update your domain's nameservers to Google's nameservers (shown in outputs)
 
-Example DNS records configuration:
+### Option 2: External DNS Provider
+If you set `dns_zone_name = ""`:
+- Manually create an A record pointing your domain to the load balancer IP
+- Manage additional DNS records through your DNS provider
+
+### Adding DNS Records
+
+Add records to the `dns_records` map in `terraform.tfvars`. The example below shows both SendGrid email service configuration and common website records:
 
 ```hcl
 dns_records = {
-  # SendGrid email verification
-  "em8516" = {
+  # SendGrid email configuration
+  "em1234" = {
     record_type = "CNAME"
     ttl         = 3600
-    records     = ["u51965170.wl171.sendgrid.net."]
-    zone_name   = "your-zone-name"
+    records     = ["u12345678.wl123.sendgrid.net."]
+    zone_name   = "your-domain-zone"
   },
   
-  # WWW subdomain
+  "s1._domainkey" = {
+    record_type = "CNAME"
+    ttl         = 3600
+    records     = ["s1.domainkey.u12345678.wl123.sendgrid.net."]
+    zone_name   = "your-domain-zone"
+  },
+  
+  # Common DNS records
   "www" = {
     record_type = "CNAME"
     ttl         = 3600
     records     = ["your-domain.com."]
-    zone_name   = "your-zone-name"
+    zone_name   = "your-domain-zone"
+  },
+  
+  "api" = {
+    record_type = "CNAME"
+    ttl         = 3600
+    records     = ["your-domain.com."]
+    zone_name   = "your-domain-zone"
   }
 }
 ```
 
-To add a new DNS record, simply add a new entry to the `dns_records` map and apply the changes.
+## 🔧 Configuration Reference
 
-## Post-Deployment Steps
+### Core Variables
 
-1. Configure DNS to point your domain to the load balancer IP address (shown in the outputs)
-   - *Note: If using Cloud DNS (dns_zone_name is set), the root domain A record is created automatically*
-2. Push your frontend assets to the created Cloud Storage bucket
-3. Verify that the Kubernetes service is running
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `project_id` | Your GCP project ID | - | ✅ |
+| `project_name` | Resource naming prefix | `"vite-fastapi"` | ❌ |
+| `region` | GCP region for resources | `"us-east1"` | ❌ |
+| `domain_name` | Your domain name | - | ✅ |
+| `api_container_image` | Backend container image | - | ✅ |
 
-## Clean Up
+### SSL Configuration
 
-### Option A: Using the Helper Script (Recommended)
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `ssl_private_key_path` | Path to SSL private key file | ✅ |
+| `ssl_certificate_path` | Path to SSL certificate file | ✅ |
 
-For a safer and more thorough cleanup process, use the provided cleanup script:
+### GKE Configuration
 
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `gke_type` | Cluster type: "region" or "zone" | `"region"` |
+| `gke_num_nodes` | Number of GKE nodes | `2` |
+| `gke_machine_type` | GKE node machine type | `"e2-standard-2"` |
+| `gke_machine_disk_size_gb` | Node disk size in GB | `10` |
+| `gke_instance_node_zone` | GKE node zone (required for zonal clusters) | `"us-east1b"` |
+
+### Networking Configuration
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `gke_subnet_cidr` | GKE subnet CIDR | `"10.0.0.0/20"` |
+| `gke_pods_cidr` | GKE pods CIDR | `"10.16.0.0/14"` |
+| `gke_services_cidr` | GKE services CIDR | `"10.20.0.0/20"` |
+| `gke_master_cidr` | GKE master CIDR | `"172.16.0.0/28"` |
+
+### Security Configuration
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `allowed_egress_domains` | Allowed outbound domains from GKE | `[]` |
+| `allowed_egress_ip_ranges` | IP ranges for allowed domains | `[]` |
+
+## 📤 Outputs
+
+After successful deployment, you'll receive:
+
+- **Load Balancer IP**: For DNS configuration
+- **Frontend Bucket Name**: For uploading static assets
+- **Kubernetes Cluster Info**: Connection details and credentials
+- **URLs**: Frontend and API endpoints
+- **DNS Configuration**: Instructions and record summaries
+- **kubectl Command**: Ready-to-use cluster connection command
+
+## 🛠️ Post-Deployment Steps
+
+### 1. Configure DNS
+- Point your domain to the load balancer IP (automatically handled if using Cloud DNS)
+- Wait for DNS propagation (can take up to 48 hours)
+
+### 2. Deploy Your Applications
+
+#### Frontend Deployment
+Upload your built React/Vite application to the Cloud Storage bucket:
+
+```bash
+# Build your frontend application
+npm run build
+
+# Upload to the bucket (replace with your bucket name from outputs)
+gsutil -m rsync -r -d ./dist gs://your-frontend-bucket-name
+```
+
+#### Backend Deployment
+Deploy your FastAPI application to GKE:
+
+```bash
+# Get cluster credentials
+$(terraform output -raw kubectl_command)
+
+# Apply your Kubernetes manifests
+kubectl apply -f your-k8s-manifests/
+```
+
+### 3. Verify Deployment
+- Check that your frontend loads at `https://your-domain.com`
+- Verify API endpoints work at `https://your-domain.com/api`
+- Monitor logs in the Google Cloud Console
+
+## 🎭 SSL Certificate Management
+
+### For Production
+Use certificates from a trusted Certificate Authority or Let's Encrypt:
+
+```bash
+# Example with certbot (Let's Encrypt)
+certbot certonly --manual --preferred-challenges dns -d your-domain.com
+```
+
+### For Testing
+Generate self-signed certificates using the included script:
+
+```bash
+chmod +x generate-cert.sh
+./generate-cert.sh your-domain.com
+```
+
+## 🔄 CI/CD Integration
+
+This infrastructure supports GitHub Actions for automated deployments. See `GITHUB_SECRETS.md` for required secrets configuration.
+
+Required GitHub Secrets:
+- `GCP_PROJECT_ID`
+- `GCP_SA_KEY` (base64-encoded service account key)
+- `TF_STATE_BUCKET`
+- `SSL_PRIVATE_KEY`
+- `SSL_CERTIFICATE`
+
+## 📊 Monitoring and Logging
+
+### Built-in Logging
+- **Application Logs**: GKE pod logs automatically sent to Cloud Logging
+- **Infrastructure Logs**: Load balancer, CDN, and network logs
+- **Security Logs**: Firewall and VPC flow logs
+- **Storage**: Logs stored in dedicated Cloud Storage bucket and BigQuery
+
+### Accessing Logs
+```bash
+# View GKE application logs
+kubectl logs -f deployment/your-api-deployment -n your-namespace
+
+# View infrastructure logs in Cloud Console
+# Navigation: Cloud Console > Logging > Logs Explorer
+```
+
+### Monitoring Dashboards
+Access pre-configured monitoring in the Google Cloud Console:
+- GKE cluster metrics and health
+- Load balancer performance
+- CDN cache hit rates
+- Resource utilization
+
+## 🧹 Cleanup
+
+### Using the Helper Script (Recommended)
 ```bash
 chmod +x cleanup.sh
 ./cleanup.sh
 ```
 
-The cleanup script will:
-- Confirm before proceeding with destructive actions
-- Run terraform destroy to remove all infrastructure
-- Optionally delete local configuration files (terraform.tfvars)
-- Optionally delete SSL certificate files
-- Optionally delete the Terraform state bucket
-- Provide detailed feedback during the cleanup process
+The cleanup script provides:
+- Confirmation prompts before destructive actions
+- Option to preserve or delete configuration files
+- Option to preserve or delete the Terraform state bucket
+- Detailed progress feedback
 
-### Option B: Manual Cleanup
-
-To delete all created resources manually:
-
+### Manual Cleanup
 ```bash
 terraform destroy
 ```
 
-## Output Information
+**Warning**: This will permanently delete all infrastructure. Ensure you have backups of any important data.
 
-After successful deployment, Terraform will output:
-- Load balancer IP
-- Frontend bucket name
-- Kubernetes cluster name
-- Command to get kubectl credentials
-- API and frontend URLs
-- DNS configuration instructions
-- List of enabled GCP APIs
-- Summary of configured DNS records
+## 🔧 Troubleshooting
 
-## Common Issues and Troubleshooting
+### Common Issues
 
-### API Enablement
-The infrastructure automatically enables all required APIs, but this can take time. If you encounter errors about disabled APIs, try running `terraform apply` again after a few minutes.
+#### API Enablement Delays
+**Problem**: Errors about disabled APIs during deployment
+**Solution**: Wait a few minutes and run `terraform apply` again
 
-### GKE Cluster Creation
-GKE clusters can take 5-10 minutes to fully create and provision. Be patient during this step.
+#### GKE Cluster Creation Timeout
+**Problem**: GKE cluster takes longer than expected
+**Solution**: GKE clusters typically take 5-10 minutes to create - be patient
 
-### SSL Certificate Issues
-Ensure your SSL certificate files are in PEM format and cover the domain you're using.
+#### SSL Certificate Issues
+**Problem**: SSL handshake failures
+**Solution**: 
+- Ensure certificate files are in PEM format
+- Verify certificate matches your domain
+- Check certificate hasn't expired
 
-### IAM Permission Issues
-Ensure your GCP account has sufficient permissions. You need at least:
+#### DNS Resolution Issues
+**Problem**: Domain doesn't resolve to the load balancer
+**Solution**:
+- Verify DNS records are correctly configured
+- Wait for DNS propagation (up to 48 hours)
+- Use `dig your-domain.com` to check DNS resolution
+
+#### Permission Errors
+**Problem**: Terraform fails with permission errors
+**Solution**: Ensure your GCP account has these roles:
 - Compute Admin
 - Kubernetes Engine Admin
 - Storage Admin
 - Service Account User
 - IAM Admin
-- Logging Admin
-- BigQuery Admin
+- DNS Admin (if using Cloud DNS)
 
-### DNS Issues
-- If using Cloud DNS, verify that your domain's nameservers are updated to point to Google's nameservers
-- If using external DNS, manually create an A record for the root domain pointing to the load balancer IP
+### Getting Help
 
-### Helper Script Issues
-- If you encounter permission issues with the helper scripts, ensure they're executable: `chmod +x *.sh`
-- On Windows, consider using WSL or Git Bash to run the bash scripts
-- Check that your GCP credentials are properly configured before running the scripts
+1. **Check Terraform State**: `terraform state list`
+2. **View Resource Details**: `terraform state show resource.name`
+3. **Check GCP Console**: Review resources in the Google Cloud Console
+4. **View Logs**: Check Cloud Logging for error messages
+5. **Validate Configuration**: `terraform validate` and `terraform plan`
 
-## Customization
+## 🛡️ Security Best Practices
 
-The infrastructure is designed to be customizable. Common customizations include:
+### Network Security
+- Private GKE nodes prevent direct internet access
+- Firewall rules restrict traffic to necessary ports only
+- VPC provides network isolation
+- Optional egress restrictions for outbound traffic
 
-- Changing machine types for GKE nodes (`gke_machine_type` variable)
-- Adjusting the number of GKE nodes (`gke_num_nodes` variable)
-- Configuring egress restrictions (`allowed_egress_domains` variable)
-- Modifying subnet CIDRs for advanced networking
-- Adding custom DNS records to the `dns_records` map
+### Access Control
+- Workload Identity for secure pod-to-GCP API access
+- Service accounts with minimal required permissions
+- Shielded GKE nodes for hardware-level security
 
-## Files Overview
+### Certificate Management
+- Use trusted CAs for production certificates
+- Regularly rotate SSL certificates
+- Store private keys securely
 
-- `main.tf` - Main infrastructure definition
-- `variables.tf` - Variable definitions
-- `outputs.tf` - Output declarations
-- `terraform.tfvars.example` - Example variable values with DNS configuration
-- `generate-cert.sh` - Helper script to generate test SSL certificates
-- `deploy.sh` - Helper script for streamlined deployment
-- `cleanup.sh` - Helper script for thorough cleanup
-- `.gitignore` - Git ignore rules
-- `PROJECT_OVERVIEW.md` - Detailed overview of project components
+### Monitoring and Auditing
+- Enable all available logging for security monitoring
+- Regular review of access logs
+- Monitor for unusual network traffic patterns
 
-## Next Steps
+## 🤝 Contributing
 
-After deploying the infrastructure, you'll need to:
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly in a development environment
+5. Submit a pull request with detailed description
 
-1. Deploy your FastAPI backend to the GKE cluster
-2. Upload your Vite + React frontend to the Cloud Storage bucket
-3. Set up a CI/CD pipeline to automate future deployments
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Support
+
+For issues and questions:
+1. Check the troubleshooting section above
+2. Search existing GitHub issues
+3. Create a new issue with detailed information:
+   - Terraform version
+   - Error messages
+   - Configuration details (sanitized)
+   - Steps to reproduce
+
+---
+
+**Note**: This infrastructure is designed for production use but always test thoroughly in a development environment first. Costs can vary based on usage patterns and resource configurations.
